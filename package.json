@@ -7,6 +7,7 @@
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.370",
+    "express": "^5.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.370"
@@ -20,9 +21,10 @@
     "typescript": "5.8.2"
   },
   "scripts": {
-    "dev": "remotion studio",
-    "build": "remotion bundle",
-    "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
-  }
+  "start": "node server.js",
+  "dev": "remotion studio",
+  "build": "remotion bundle",
+  "upgrade": "remotion upgrade",
+  "lint": "eslint src && tsc"
+},
 }
