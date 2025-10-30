@@ -1,4 +1,4 @@
-// server.js
+// server.js - Version 2 (Robust)
 
 const express = require('express');
 const { exec } = require('child_process');
@@ -6,42 +6,45 @@ const { promisify } = require('util');
 const execAsync = promisify(exec);
 
 const app = express();
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json());
 const PORT = process.env.PORT || 10000;
 
-// This is the main "render" endpoint.
-// Pipedream will send a POST request to this URL.
 app.post('/render-video', async (req, res) => {
   console.log("Received a new render request...");
 
-  // Get the data from Pipedream's request
   const { topic, quote, imageUrl } = req.body;
 
   if (!topic || !quote || !imageUrl) {
     return res.status(400).send({ error: 'Missing required properties: topic, quote, imageUrl' });
   }
 
-  // Define the output file path. We add a random number to make it unique.
   const outputFileName = `video-${Date.now()}.mp4`;
   const outputLocation = `out/${outputFileName}`;
 
-  // This is our render command. It now includes the custom data via '--props'.
-  const renderCommand = `npx remotion render src/index.ts MyComp ${outputLocation} --props='${JSON.stringify({ topic, quote, imageUrl })}'`;
+  // --- THE FIX ---
+  // We create a clean JSON object for the props.
+  const inputProps = { topic, quote, imageUrl };
 
-  console.log(`Executing render command: ${renderCommand}`);
+  // We convert the object to a JSON string.
+  const propsString = JSON.stringify(inputProps);
+
+  // We "escape" the string for shell command safety. This is the crucial part.
+  // This replaces single quotes with a "safe" version so the shell doesn't get confused.
+  const escapedPropsString = propsString.replace(/'/g, "'\\''");
+  
+  // We build the final command using these safe, escaped props.
+  const renderCommand = `npx remotion render src/index.ts MyComp ${outputLocation} --props='${escapedPropsString}'`;
+  
+  console.log(`Executing robust render command...`);
 
   try {
-    // Execute the render command. This will take time.
     await execAsync(renderCommand);
     console.log(`Successfully rendered video: ${outputLocation}`);
-
-    // In a real application, we would upload this file to a service like S3
-    // and return the public URL. For now, we will just confirm success.
-    // NOTE: Render.com has an ephemeral filesystem, so the file will disappear after a while.
+    
+    // For now, we just confirm success.
     res.status(200).send({
       success: true,
       message: "Video rendered successfully.",
-      // In the future, this would be a public URL to the video.
       videoPath: outputLocation
     });
 
